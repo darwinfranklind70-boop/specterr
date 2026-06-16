@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpectraWave · Visualizador de música</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo-dot"></span>
+      <h1>SpectraWave</h1>
+      <span class="tag">Music Visualizer</span>
+    </div>
+    <div class="topbar-actions">
+      <button id="recordBtn" class="btn btn-record" title="Grabar video (WebM)">
+        <span class="rec-dot"></span> Grabar video
+      </button>
+      <button id="fullscreenBtn" class="btn btn-ghost" title="Pantalla completa">⛶ Pantalla completa</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ====== PANEL DE CONTROLES ====== -->
+    <aside class="panel">
+      <!-- Audio -->
+      <section class="card">
+        <h2>1 · Audio</h2>
+        <label class="filebox" id="audioDrop">
+          <input type="file" id="audioInput" accept="audio/*" hidden />
+          <div class="filebox-inner">
+            <span class="filebox-icon">🎵</span>
+            <span class="filebox-text">Sube tu canción</span>
+            <small id="audioName">MP3, WAV, OGG…</small>
+          </div>
+        </label>
+        <div class="transport">
+          <button id="playBtn" class="btn btn-primary" disabled>▶ Reproducir</button>
+          <span id="timeLabel" class="time">0:00 / 0:00</span>
+        </div>
+        <input type="range" id="seek" class="seek" min="0" max="100" value="0" step="0.1" disabled />
+        <div class="row">
+          <label class="mini">Volumen</label>
+          <input type="range" id="volume" min="0" max="1" step="0.01" value="1" />
+        </div>
+      </section>
+
+      <!-- Estilo del espectro -->
+      <section class="card">
+        <h2>2 · Estilo del espectro</h2>
+        <div class="row">
+          <label class="mini">Tipo</label>
+          <select id="vizType">
+            <option value="bars">Barras</option>
+            <option value="mirror">Barras espejo</option>
+            <option value="radial">Radial / Circular</option>
+            <option value="wave">Onda (line)</option>
+            <option value="dots">Puntos</option>
+            <option value="blocks">Bloques (LED)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label class="mini">Color barras</label>
+          <input type="color" id="barColor" value="#7c5cff" />
+        </div>
+        <div class="row">
+          <label class="mini">Color 2 (degradado)</label>
+          <input type="color" id="barColor2" value="#00e5ff" />
+        </div>
+        <label class="check">
+          <input type="checkbox" id="useGradient" checked /> Usar degradado
+        </label>
+        <div class="row">
+          <label class="mini">Sensibilidad</label>
+          <input type="range" id="sensitivity" min="0.5" max="4" step="0.1" value="1.6" />
+        </div>
+        <div class="row">
+          <label class="mini">Nº de barras</label>
+          <input type="range" id="barCount" min="16" max="256" step="2" value="96" />
+        </div>
+        <div class="row">
+          <label class="mini">Suavizado</label>
+          <input type="range" id="smoothing" min="0" max="0.95" step="0.05" value="0.8" />
+        </div>
+        <div class="row">
+          <label class="mini">Grosor / hueco</label>
+          <input type="range" id="barGap" min="0" max="0.9" step="0.05" value="0.3" />
+        </div>
+        <label class="check">
+          <input type="checkbox" id="glow" checked /> Brillo (glow)
+        </label>
+      </section>
+
+      <!-- Fondo -->
+      <section class="card">
+        <h2>3 · Fondo</h2>
+        <div class="row">
+          <label class="mini">Tipo de fondo</label>
+          <select id="bgType">
+            <option value="solid">Color sólido</option>
+            <option value="gradient" selected>Degradado</option>
+            <option value="image">Imagen</option>
+            <option value="video">Video</option>
+          </select>
+        </div>
+        <div class="row">
+          <label class="mini">Color A</label>
+          <input type="color" id="bgColor1" value="#0f0c29" />
+        </div>
+        <div class="row">
+          <label class="mini">Color B</label>
+          <input type="color" id="bgColor2" value="#24243e" />
+        </div>
+        <div class="row" id="bgAngleRow">
+          <label class="mini">Ángulo</label>
+          <input type="range" id="bgAngle" min="0" max="360" step="1" value="135" />
+        </div>
+        <label class="filebox small" id="bgImageBox" style="display:none">
+          <input type="file" id="bgImageInput" accept="image/*" hidden />
+          <div class="filebox-inner">
+            <span class="filebox-icon">🖼️</span>
+            <span class="filebox-text">Subir imagen de fondo</span>
+          </div>
+        </label>
+        <label class="filebox small" id="bgVideoBox" style="display:none">
+          <input type="file" id="bgVideoInput" accept="video/*" hidden />
+          <div class="filebox-inner">
+            <span class="filebox-icon">🎬</span>
+            <span class="filebox-text">Subir video de fondo</span>
+          </div>
+        </label>
+        <div class="row">
+          <label class="mini">Oscurecer fondo</label>
+          <input type="range" id="bgDim" min="0" max="0.85" step="0.05" value="0.25" />
+        </div>
+        <label class="check">
+          <input type="checkbox" id="reactiveBg" /> Fondo reactivo (pulso)
+        </label>
+      </section>
+
+      <!-- Texto y portada -->
+      <section class="card">
+        <h2>4 · Texto y portada</h2>
+        <label class="filebox small" id="coverBox">
+          <input type="file" id="coverInput" accept="image/*" hidden />
+          <div class="filebox-inner">
+            <span class="filebox-icon">💿</span>
+            <span class="filebox-text">Subir portada / cover</span>
+          </div>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="spinCover" checked /> Girar portada con la música
+        </label>
+        <div class="row">
+          <label class="mini">Título</label>
+          <input type="text" id="titleText" placeholder="Nombre de la canción" />
+        </div>
+        <div class="row">
+          <label class="mini">Subtítulo</label>
+          <input type="text" id="subText" placeholder="Artista" />
+        </div>
+        <div class="row">
+          <label class="mini">Color texto</label>
+          <input type="color" id="textColor" value="#ffffff" />
+        </div>
+        <div class="row">
+          <label class="mini">Posición texto</label>
+          <select id="textPos">
+            <option value="bottom-left">Abajo izquierda</option>
+            <option value="bottom-center">Abajo centro</option>
+            <option value="top-left">Arriba izquierda</option>
+            <option value="center">Centro</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Lienzo -->
+      <section class="card">
+        <h2>5 · Formato</h2>
+        <div class="row">
+          <label class="mini">Resolución</label>
+          <select id="aspect">
+            <option value="16:9">16:9 (YouTube)</option>
+            <option value="1:1">1:1 (Cuadrado)</option>
+            <option value="9:16">9:16 (Reels/TikTok)</option>
+          </select>
+        </div>
+        <button id="resetBtn" class="btn btn-ghost full">↺ Restablecer valores</button>
+      </section>
+    </aside>
+
+    <!-- ====== PREVIEW ====== -->
+    <section class="stage">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="viz"></canvas>
+        <div class="canvas-hint" id="canvasHint">
+          <p>🎧 Sube una canción para empezar</p>
+          <small>Tu audio se procesa 100% en tu navegador. Nada se sube a ningún servidor.</small>
+        </div>
+        <div class="rec-badge" id="recBadge">● REC <span id="recTime">0:00</span></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Elementos multimedia ocultos -->
+  <audio id="audioEl" crossorigin="anonymous"></audio>
+  <video id="bgVideoEl" loop muted playsinline crossorigin="anonymous" style="display:none"></video>
+
+  <script src="app.js"></script>
+</body>
+</html>
