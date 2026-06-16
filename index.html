@@ -147,6 +147,8 @@ input[type="range"]::-moz-range-thumb{width:15px;height:15px;border:none;border-
           <optgroup label="Especiales">
             <option value="dots">Puntos</option>
             <option value="waterfall">Espectrograma (waterfall)</option>
+            <option value="tunnel">Túnel hipnótico</option>
+            <option value="grid">Rejilla synthwave</option>
             <option value="fireworks">Fuegos artificiales</option>
           </optgroup>
         </select>
@@ -154,6 +156,13 @@ input[type="range"]::-moz-range-thumb{width:15px;height:15px;border:none;border-
       <div class="row"><label class="mini">Color barras</label><input type="color" id="barColor" value="#7c5cff" /></div>
       <div class="row"><label class="mini">Color 2 (degradado)</label><input type="color" id="barColor2" value="#00e5ff" /></div>
       <label class="check"><input type="checkbox" id="useGradient" checked /> Usar degradado</label>
+      <div class="row"><label class="mini">Modo de color</label>
+        <select id="colorMode">
+          <option value="gradient">Fijo / degradado</option>
+          <option value="rainbow">Arcoíris animado 🌈</option>
+        </select>
+      </div>
+      <div class="row" id="hueSpeedRow" style="display:none"><label class="mini">Velocidad arcoíris</label><input type="range" id="hueSpeed" min="0.1" max="4" step="0.1" value="0.6" /></div>
       <div class="row"><label class="mini">Sensibilidad</label><input type="range" id="sensitivity" min="0.5" max="4" step="0.1" value="1.6" /></div>
       <div class="row"><label class="mini">Nº de barras</label><input type="range" id="barCount" min="16" max="256" step="2" value="96" /></div>
       <div class="row"><label class="mini">Suavizado</label><input type="range" id="smoothing" min="0" max="0.95" step="0.05" value="0.8" /></div>
@@ -208,7 +217,49 @@ input[type="range"]::-moz-range-thumb{width:15px;height:15px;border:none;border-
     </section>
 
     <section class="card">
-      <h2>5 · Formato</h2>
+      <h2>5 · Studio / DJ <span style="font-weight:400;text-transform:none;color:var(--accent-2)">remezcla sin romper la canción</span></h2>
+      <div class="row"><label class="mini">Preset</label>
+        <select id="fxPreset">
+          <option value="flat">Original (sin efectos)</option>
+          <option value="club">Club / Bass boost</option>
+          <option value="nightcore">Nightcore (rápido)</option>
+          <option value="slowed">Slowed + Reverb</option>
+          <option value="radio">Radio / Lo-fi</option>
+          <option value="vocal">Voz al frente</option>
+          <option value="8d">8D espacial</option>
+        </select>
+      </div>
+
+      <div class="row"><label class="mini">Tempo / velocidad <b id="rateVal">1.00x</b></label><input type="range" id="rate" min="0.5" max="1.75" step="0.01" value="1" /></div>
+      <label class="check"><input type="checkbox" id="preservePitch" checked /> Mantener tono al cambiar tempo</label>
+
+      <div class="row"><label class="mini">Filtro DJ (graves ← → agudos)</label><input type="range" id="djFilter" min="-100" max="100" step="1" value="0" /></div>
+
+      <p class="mini" style="margin:10px 0 6px">Ecualizador</p>
+      <div class="row"><label class="mini">Graves <b id="bassVal">0dB</b></label><input type="range" id="eqLow" min="-15" max="15" step="0.5" value="0" /></div>
+      <div class="row"><label class="mini">Medios <b id="midVal">0dB</b></label><input type="range" id="eqMid" min="-15" max="15" step="0.5" value="0" /></div>
+      <div class="row"><label class="mini">Agudos <b id="trebVal">0dB</b></label><input type="range" id="eqHigh" min="-15" max="15" step="0.5" value="0" /></div>
+
+      <p class="mini" style="margin:10px 0 6px">Efectos</p>
+      <div class="row"><label class="mini">Reverb</label><input type="range" id="reverb" min="0" max="1" step="0.02" value="0" /></div>
+      <div class="row"><label class="mini">Eco / delay</label><input type="range" id="delayMix" min="0" max="0.8" step="0.02" value="0" /></div>
+      <div class="row"><label class="mini">Tiempo de eco</label><input type="range" id="delayTime" min="0.05" max="0.8" step="0.01" value="0.3" /></div>
+      <div class="row"><label class="mini">Distorsión / drive</label><input type="range" id="drive" min="0" max="100" step="1" value="0" /></div>
+      <div class="row"><label class="mini">Punch (compresor)</label><input type="range" id="punch" min="0" max="100" step="1" value="0" /></div>
+
+      <p class="mini" style="margin:10px 0 6px">Loop para remix (A/B)</p>
+      <div class="transport" style="flex-wrap:wrap;gap:8px">
+        <button id="loopABtn" class="btn btn-ghost">⏺ A</button>
+        <button id="loopBBtn" class="btn btn-ghost">⏏ B</button>
+        <button id="loopClearBtn" class="btn btn-ghost">✕ Quitar loop</button>
+      </div>
+      <span id="loopInfo" class="mini">Sin loop activo</span>
+
+      <button id="exportAudioBtn" class="btn btn-primary full" style="margin-top:12px">💾 Exportar remix (audio)</button>
+    </section>
+
+    <section class="card">
+      <h2>6 · Formato</h2>
       <div class="row"><label class="mini">Resolución</label>
         <select id="aspect">
           <option value="16:9">16:9 (YouTube)</option>
@@ -251,6 +302,7 @@ const cfg={
   sensitivity:1.6,barCount:96,smoothing:0.8,barGap:0.3,glow:true,
   bgType:'gradient',bgColor1:'#0f0c29',bgColor2:'#24243e',bgAngle:135,bgDim:0.25,
   reactiveBg:false,particles:false,spinCover:true,
+  colorMode:'gradient',hueSpeed:0.6,hueSpread:60,
   titleText:'',subText:'',textColor:'#ffffff',textPos:'bottom-left',aspect:'16:9'
 };
 
@@ -258,6 +310,10 @@ let audioCtx,analyser,sourceNode,gainNode,freqData,timeData;
 let isAudioReady=false,coverImg=null,bgImg=null,coverAngle=0;
 let mediaRecorder=null,recChunks=[],recStart=0,recTimer=null;
 let parts=[];
+let hue=0;                       // color animado (arcoíris)
+const fx={};                     // nodos del Studio/DJ
+let loopA=null,loopB=null;       // loop A/B para remix
+let audioRec=null,audioChunks=[];// grabador de remix (solo audio)
 
 function setCanvasSize(){
   const map={'16:9':[1280,720],'1:1':[1080,1080],'9:16':[720,1280]};
@@ -278,13 +334,65 @@ function initParticles(){
 function initAudioGraph(){
   if(audioCtx)return;
   audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  analyser=audioCtx.createAnalyser();
-  gainNode=audioCtx.createGain();
   sourceNode=audioCtx.createMediaElementSource(audioEl);
-  sourceNode.connect(gainNode);gainNode.connect(analyser);analyser.connect(audioCtx.destination);
+  analyser=audioCtx.createAnalyser();
+
+  // --- Cadena de efectos (Studio / DJ) ---
+  fx.pre   = audioCtx.createGain();
+  fx.hpf   = audioCtx.createBiquadFilter(); fx.hpf.type='highpass'; fx.hpf.frequency.value=20;
+  fx.lpf   = audioCtx.createBiquadFilter(); fx.lpf.type='lowpass';  fx.lpf.frequency.value=20000;
+  fx.eqLow = audioCtx.createBiquadFilter(); fx.eqLow.type='lowshelf';  fx.eqLow.frequency.value=120;
+  fx.eqMid = audioCtx.createBiquadFilter(); fx.eqMid.type='peaking';   fx.eqMid.frequency.value=1000; fx.eqMid.Q.value=0.9;
+  fx.eqHigh= audioCtx.createBiquadFilter(); fx.eqHigh.type='highshelf';fx.eqHigh.frequency.value=3500;
+  fx.shaper= audioCtx.createWaveShaper();   // distorsión (off por defecto)
+  fx.comp  = audioCtx.createDynamicsCompressor();
+  fx.comp.threshold.value=0; fx.comp.ratio.value=1; // prácticamente desactivado al inicio
+  gainNode = audioCtx.createGain();         // master
+
+  // Reverb (convolución con impulso generado)
+  fx.conv  = audioCtx.createConvolver(); fx.conv.buffer=makeImpulse(2.4,2.6);
+  fx.revGain=audioCtx.createGain(); fx.revGain.gain.value=0;
+  // Eco / delay con realimentación
+  fx.delay = audioCtx.createDelay(2.0); fx.delay.delayTime.value=0.3;
+  fx.fb    = audioCtx.createGain(); fx.fb.gain.value=0.35;
+  fx.delGain=audioCtx.createGain(); fx.delGain.gain.value=0;
+
+  // Conexiones de la cadena principal
+  sourceNode.connect(fx.pre);
+  fx.pre.connect(fx.hpf); fx.hpf.connect(fx.lpf);
+  fx.lpf.connect(fx.eqLow); fx.eqLow.connect(fx.eqMid); fx.eqMid.connect(fx.eqHigh);
+  fx.eqHigh.connect(fx.shaper); fx.shaper.connect(fx.comp);
+  fx.comp.connect(gainNode);
+  // Envíos de reverb y delay
+  fx.comp.connect(fx.conv);  fx.conv.connect(fx.revGain); fx.revGain.connect(gainNode);
+  fx.comp.connect(fx.delay); fx.delay.connect(fx.fb); fx.fb.connect(fx.delay);
+  fx.delay.connect(fx.delGain); fx.delGain.connect(gainNode);
+
+  gainNode.connect(analyser);
+  analyser.connect(audioCtx.destination);
+
   analyser.fftSize=2048;analyser.smoothingTimeConstant=cfg.smoothing;
   freqData=new Uint8Array(analyser.frequencyBinCount);
   timeData=new Uint8Array(analyser.fftSize);
+  audioEl.volume=1; // el volumen lo controla el master
+}
+
+// Genera una respuesta de impulso para la reverb (ruido con decaimiento exponencial)
+function makeImpulse(duration,decay){
+  const rate=audioCtx.sampleRate,len=Math.max(1,Math.floor(rate*duration));
+  const buf=audioCtx.createBuffer(2,len,rate);
+  for(let ch=0;ch<2;ch++){
+    const d=buf.getChannelData(ch);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);
+  }
+  return buf;
+}
+
+// Curva de distorsión para el waveshaper (amount 0 = sin efecto)
+function makeDistortionCurve(amount){
+  const k=amount*4, n=44100, curve=new Float32Array(n), deg=Math.PI/180;
+  for(let i=0;i<n;i++){const x=i*2/n-1;curve[i]=(3+k)*x*20*deg/(Math.PI+k*Math.abs(x));}
+  return curve;
 }
 
 function loadAudioFile(file){
@@ -693,10 +801,65 @@ function lerpColor(a,b,t){
   return 'rgb('+Math.round(ca.r+(cb.r-ca.r)*t)+','+Math.round(ca.g+(cb.g-ca.g)*t)+','+Math.round(ca.b+(cb.b-ca.b)*t)+')';
 }
 function hexToRgb(hex){const n=parseInt(hex.replace('#',''),16);return {r:n>>16&255,g:n>>8&255,b:n&255};}
+function hslToHex(h,s,l){
+  s/=100;l/=100;
+  const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l);
+  const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+  const to=x=>Math.round(255*x).toString(16).padStart(2,'0');
+  return '#'+to(f(0))+to(f(8))+to(f(4));
+}
+// Túnel: polígonos concéntricos que giran y laten
+function drawTunnel(bars){
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
+  const layers=16,sides=6,maxR=Math.min(W,H)*0.5;
+  setGlow();ctx.lineCap='round';ctx.lineJoin='round';
+  for(let l=layers;l>=1;l--){
+    const bi=Math.floor(l/layers*bars.length),amp=bars[bi%bars.length]||0;
+    const r=(l/layers)*maxR*(1+amp*0.3);
+    const rot=coverAngle*(l%2?1:-1)+l*0.2;
+    ctx.strokeStyle=cfg.useGradient?lerpColor(cfg.barColor,cfg.barColor2,l/layers):cfg.barColor;
+    ctx.globalAlpha=0.25+amp*0.75;ctx.lineWidth=2+amp*6;
+    ctx.beginPath();
+    for(let s=0;s<=sides;s++){const a=s/sides*Math.PI*2+rot;const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;s===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+    ctx.stroke();
+  }
+  ctx.globalAlpha=1;clearGlow();
+}
+// Rejilla synthwave en perspectiva que late con la música
+let gridOff=0;
+function drawGrid(bars,level){
+  const W=canvas.width,H=canvas.height,hor=H*0.55;
+  gridOff=(gridOff+1.5+level*8)%40;
+  setGlow();ctx.strokeStyle=makeBarGradient(0,hor,0,H);ctx.lineWidth=2;
+  // líneas horizontales (se acercan)
+  for(let i=0;i<22;i++){
+    const p=(i*40+gridOff)/(22*40);
+    const y=hor+Math.pow(p,2)*(H-hor);
+    ctx.globalAlpha=0.2+p*0.8;
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+  }
+  // líneas verticales (convergen al centro)
+  const vx=18;
+  for(let i=-vx;i<=vx;i++){
+    ctx.globalAlpha=0.5;
+    ctx.beginPath();ctx.moveTo(W/2+i*22,hor);ctx.lineTo(W/2+i*(W/vx/1.2),H);ctx.stroke();
+  }
+  // skyline de barras sobre el horizonte
+  ctx.globalAlpha=1;const slot=W/bars.length;
+  for(let i=0;i<bars.length;i++){const h=bars[i]*hor*0.9;ctx.fillStyle=makeBarGradient(0,hor-h,0,hor);ctx.fillRect(i*slot,hor-h,slot*0.7,h);}
+  clearGlow();
+}
 
 let loopRunning=false;
 function render(){
   requestAnimationFrame(render);
+  // Color animado (arcoíris)
+  let oc1=cfg.barColor,oc2=cfg.barColor2;
+  if(cfg.colorMode==='rainbow'){
+    hue=(hue+cfg.hueSpeed)%360;
+    cfg.barColor=hslToHex(hue,80,60);
+    cfg.barColor2=hslToHex((hue+cfg.hueSpread)%360,85,55);
+  }
   let level=0,bars=[];
   if(isAudioReady&&analyser){analyser.getByteFrequencyData(freqData);level=avgLevel();bars=getBars();}
   drawBackground(level);
@@ -721,6 +884,8 @@ function render(){
       case 'spiral':drawSpiral(bars);break;
       case 'dots':drawDots(bars);break;
       case 'waterfall':drawWaterfall();break;
+      case 'tunnel':drawTunnel(bars);break;
+      case 'grid':drawGrid(bars,level);break;
       case 'fireworks':drawFireworks(bars,level);break;
       default:drawBars(bars,false);
     }
@@ -728,6 +893,7 @@ function render(){
     if(cfg.spinCover)coverAngle+=0.01+level*0.06;
   }
   drawText();
+  cfg.barColor=oc1;cfg.barColor2=oc2; // restaura colores del usuario
 }
 
 /* ---- Grabación ---- */
@@ -819,6 +985,102 @@ $('coverInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)re
   const img=new Image();img.onload=()=>{coverImg=img;};img.src=URL.createObjectURL(f);});
 
 $('aspect').addEventListener('change',e=>{cfg.aspect=e.target.value;setCanvasSize();});
+
+/* ===== Color animado (arcoíris) ===== */
+$('colorMode').addEventListener('change',e=>{
+  cfg.colorMode=e.target.value;
+  $('hueSpeedRow').style.display=cfg.colorMode==='rainbow'?'flex':'none';
+});
+$('hueSpeed').addEventListener('input',e=>{cfg.hueSpeed=parseFloat(e.target.value);});
+
+/* ===== Studio / DJ ===== */
+function needAudio(){if(!isAudioReady){alert('Primero sube una canción.');return false;}return true;}
+
+// Tempo / velocidad
+$('rate').addEventListener('input',e=>{
+  const r=parseFloat(e.target.value);audioEl.playbackRate=r;$('rateVal').textContent=r.toFixed(2)+'x';
+});
+$('preservePitch').addEventListener('change',e=>{
+  audioEl.preservesPitch=e.target.checked;
+  audioEl.mozPreservesPitch=e.target.checked;audioEl.webkitPreservesPitch=e.target.checked;
+});
+
+// Filtro DJ: un solo control. <0 baja el lowpass (apaga agudos), >0 sube el highpass (quita graves)
+$('djFilter').addEventListener('input',e=>{
+  if(!fx.lpf)return;const v=parseFloat(e.target.value);
+  if(v<0){const f=mapExp(-v,0,100,20000,300);fx.lpf.frequency.value=f;fx.hpf.frequency.value=20;}
+  else if(v>0){const f=mapExp(v,0,100,20,2500);fx.hpf.frequency.value=f;fx.lpf.frequency.value=20000;}
+  else{fx.lpf.frequency.value=20000;fx.hpf.frequency.value=20;}
+});
+function mapExp(x,inMin,inMax,outMin,outMax){const t=(x-inMin)/(inMax-inMin);return outMin*Math.pow(outMax/outMin,t);}
+
+// Ecualizador
+$('eqLow').addEventListener('input',e=>{const v=parseFloat(e.target.value);if(fx.eqLow)fx.eqLow.gain.value=v;$('bassVal').textContent=v+'dB';});
+$('eqMid').addEventListener('input',e=>{const v=parseFloat(e.target.value);if(fx.eqMid)fx.eqMid.gain.value=v;$('midVal').textContent=v+'dB';});
+$('eqHigh').addEventListener('input',e=>{const v=parseFloat(e.target.value);if(fx.eqHigh)fx.eqHigh.gain.value=v;$('trebVal').textContent=v+'dB';});
+
+// Efectos
+$('reverb').addEventListener('input',e=>{if(fx.revGain)fx.revGain.gain.value=parseFloat(e.target.value);});
+$('delayMix').addEventListener('input',e=>{if(fx.delGain)fx.delGain.gain.value=parseFloat(e.target.value);});
+$('delayTime').addEventListener('input',e=>{if(fx.delay)fx.delay.delayTime.value=parseFloat(e.target.value);});
+$('drive').addEventListener('input',e=>{const v=parseFloat(e.target.value);if(fx.shaper)fx.shaper.curve=v>0?makeDistortionCurve(v/100):null;});
+$('punch').addEventListener('input',e=>{
+  if(!fx.comp)return;const v=parseFloat(e.target.value)/100;
+  fx.comp.threshold.value=-v*40;fx.comp.ratio.value=1+v*11;fx.comp.knee.value=30;fx.comp.attack.value=0.003;fx.comp.release.value=0.25;
+});
+
+// Presets de remezcla
+const PRESETS={
+  flat:{rate:1,dj:0,low:0,mid:0,high:0,rev:0,del:0,drive:0,punch:0},
+  club:{rate:1,dj:0,low:7,mid:-1,high:3,rev:0.1,del:0,drive:6,punch:55},
+  nightcore:{rate:1.28,dj:0,low:2,mid:0,high:4,rev:0.12,del:0,drive:0,punch:25},
+  slowed:{rate:0.82,dj:0,low:4,mid:0,high:-2,rev:0.55,del:0.15,drive:0,punch:10},
+  radio:{rate:1,dj:0,low:-6,mid:5,high:-4,rev:0,del:0,drive:18,punch:40},
+  vocal:{rate:1,dj:0,low:-3,mid:6,high:4,rev:0.15,del:0.05,drive:0,punch:30},
+  '8d':{rate:1,dj:0,low:3,mid:0,high:2,rev:0.45,del:0.35,drive:0,punch:10}
+};
+$('fxPreset').addEventListener('change',e=>{
+  const p=PRESETS[e.target.value];if(!p)return;
+  setControl('rate',p.rate);setControl('djFilter',p.dj);
+  setControl('eqLow',p.low);setControl('eqMid',p.mid);setControl('eqHigh',p.high);
+  setControl('reverb',p.rev);setControl('delayMix',p.del);setControl('drive',p.drive);setControl('punch',p.punch);
+});
+function setControl(id,val){const el=$(id);el.value=val;el.dispatchEvent(new Event('input'));}
+
+// Loop A/B
+$('loopABtn').addEventListener('click',()=>{if(!needAudio())return;loopA=audioEl.currentTime;updateLoopInfo();});
+$('loopBBtn').addEventListener('click',()=>{if(!needAudio())return;loopB=audioEl.currentTime;updateLoopInfo();});
+$('loopClearBtn').addEventListener('click',()=>{loopA=loopB=null;updateLoopInfo();});
+function updateLoopInfo(){
+  if(loopA!=null&&loopB!=null&&loopB>loopA)$('loopInfo').textContent='Loop: '+fmtTime(loopA)+' → '+fmtTime(loopB);
+  else if(loopA!=null)$('loopInfo').textContent='A en '+fmtTime(loopA)+' (marca B)';
+  else $('loopInfo').textContent='Sin loop activo';
+}
+audioEl.addEventListener('timeupdate',()=>{
+  if(loopA!=null&&loopB!=null&&loopB>loopA&&audioEl.currentTime>=loopB)audioEl.currentTime=loopA;
+});
+
+// Exportar remix (solo audio) con todos los efectos aplicados
+$('exportAudioBtn').addEventListener('click',()=>{
+  if(!needAudio())return;
+  if(audioRec&&audioRec.state==='recording'){audioRec.stop();return;}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  const dest=audioCtx.createMediaStreamDestination();gainNode.connect(dest);
+  let mime='audio/webm;codecs=opus';if(!MediaRecorder.isTypeSupported(mime))mime='audio/webm';
+  audioChunks=[];audioRec=new MediaRecorder(dest.stream,{mimeType:mime});
+  audioRec.ondataavailable=ev=>{if(ev.data.size)audioChunks.push(ev.data);};
+  audioRec.onstop=()=>{
+    const blob=new Blob(audioChunks,{type:'audio/webm'});const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=(cfg.titleText||'remix')+'-remix.webm';a.click();
+    URL.revokeObjectURL(url);
+    $('exportAudioBtn').textContent='💾 Exportar remix (audio)';$('exportAudioBtn').classList.remove('btn-record');
+  };
+  loopA=loopB=null;updateLoopInfo();
+  audioEl.currentTime=0;audioEl.play();$('playBtn').textContent='⏸ Pausa';
+  audioRec.start();
+  $('exportAudioBtn').textContent='⏹ Detener y guardar';$('exportAudioBtn').classList.add('btn-record');
+});
+audioEl.addEventListener('ended',()=>{if(audioRec&&audioRec.state==='recording')audioRec.stop();});
 $('recordBtn').addEventListener('click',toggleRecording);
 $('snapBtn').addEventListener('click',()=>{
   const a=document.createElement('a');a.download=(cfg.titleText||'spectrawave')+'.png';
