@@ -120,12 +120,35 @@ input[type="range"]::-moz-range-thumb{width:15px;height:15px;border:none;border-
       <h2>2 · Estilo del espectro</h2>
       <div class="row"><label class="mini">Tipo</label>
         <select id="vizType">
-          <option value="bars">Barras</option>
-          <option value="mirror">Barras espejo</option>
-          <option value="radial">Radial / Circular</option>
-          <option value="wave">Onda (line)</option>
-          <option value="dots">Puntos</option>
-          <option value="blocks">Bloques (LED)</option>
+          <optgroup label="Barras">
+            <option value="bars">Barras</option>
+            <option value="mirror">Barras espejo</option>
+            <option value="centerBars">Barras desde el centro</option>
+            <option value="pyramid">Barras triángulo</option>
+            <option value="caps">Ecualizador con topes</option>
+            <option value="blocks">Bloques (LED)</option>
+            <option value="ledMatrix">Matriz LED</option>
+          </optgroup>
+          <optgroup label="Onda">
+            <option value="wave">Onda (línea)</option>
+            <option value="areaWave">Onda rellena</option>
+            <option value="dualWave">Onda doble (espejo)</option>
+            <option value="ribbon">Cinta / curva suave</option>
+          </optgroup>
+          <optgroup label="Circular / Radial">
+            <option value="radial">Radial / Circular</option>
+            <option value="radialMirror">Radial doble</option>
+            <option value="ringWave">Anillo de onda</option>
+            <option value="sunburst">Sol / rayos</option>
+            <option value="blob">Blob orgánico</option>
+            <option value="rings">Anillos concéntricos</option>
+            <option value="spiral">Espiral</option>
+          </optgroup>
+          <optgroup label="Especiales">
+            <option value="dots">Puntos</option>
+            <option value="waterfall">Espectrograma (waterfall)</option>
+            <option value="fireworks">Fuegos artificiales</option>
+          </optgroup>
         </select>
       </div>
       <div class="row"><label class="mini">Color barras</label><input type="color" id="barColor" value="#7c5cff" /></div>
@@ -428,6 +451,235 @@ function drawCornerCover(){
   ctx.beginPath();ctx.arc(x,y,size/2,0,Math.PI*2);
   ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=3;ctx.stroke();
 }
+/* ===== NUEVOS ESTILOS ===== */
+// Barras que crecen desde una línea central horizontal (arriba y abajo)
+function drawCenterBars(bars){
+  const W=canvas.width,H=canvas.height,cy=H/2,maxH=H*0.45,slot=W/bars.length,bw=slot*(1-cfg.barGap);
+  setGlow();
+  for(let i=0;i<bars.length;i++){
+    const h=bars[i]*maxH,x=i*slot+(slot-bw)/2;
+    ctx.fillStyle=makeBarGradient(0,cy-maxH,0,cy+maxH);
+    roundRect(x,cy-h,bw,h*2,Math.min(bw/2,6));ctx.fill();
+  }
+  clearGlow();
+}
+// Barras en forma de triángulo
+function drawPyramid(bars){
+  const W=canvas.width,H=canvas.height,baseY=H*0.92,maxH=H*0.7,slot=W/bars.length,bw=slot*(1-cfg.barGap);
+  setGlow();
+  for(let i=0;i<bars.length;i++){
+    const h=bars[i]*maxH,x=i*slot+slot/2;
+    ctx.fillStyle=makeBarGradient(0,baseY,0,baseY-maxH);
+    ctx.beginPath();ctx.moveTo(x,baseY-h);ctx.lineTo(x-bw/2,baseY);ctx.lineTo(x+bw/2,baseY);ctx.closePath();ctx.fill();
+  }
+  clearGlow();
+}
+// Ecualizador con topes que caen
+let caps=[];
+function drawCaps(bars){
+  const W=canvas.width,H=canvas.height,baseY=H*0.92,maxH=H*0.7,slot=W/bars.length,bw=slot*(1-cfg.barGap);
+  if(caps.length!==bars.length)caps=new Array(bars.length).fill(0);
+  setGlow();
+  for(let i=0;i<bars.length;i++){
+    const h=bars[i]*maxH,x=i*slot+(slot-bw)/2;
+    ctx.fillStyle=makeBarGradient(0,baseY,0,baseY-maxH);
+    roundRect(x,baseY-h,bw,h,Math.min(bw/2,4));ctx.fill();
+    if(h>caps[i])caps[i]=h;else caps[i]=Math.max(0,caps[i]-maxH*0.012);
+    ctx.fillStyle=cfg.useGradient?cfg.barColor2:cfg.barColor;
+    ctx.fillRect(x,baseY-caps[i]-6,bw,4);
+  }
+  clearGlow();
+}
+// Matriz de LEDs (puntos que se encienden por banda y altura)
+function drawLedMatrix(bars){
+  const W=canvas.width,H=canvas.height;
+  const cols=Math.min(bars.length,48),rows=20;
+  const gx=W/cols,gy=H/rows,r=Math.min(gx,gy)*0.32;
+  for(let c=0;c<cols;c++){
+    const bi=Math.floor(c/cols*bars.length),lit=Math.round(bars[bi]*rows);
+    for(let rr=0;rr<rows;rr++){
+      const on=rr<lit,y=H-(rr+0.5)*gy,x=(c+0.5)*gx;
+      ctx.fillStyle=on?(cfg.useGradient?lerpColor(cfg.barColor,cfg.barColor2,rr/rows):cfg.barColor):'rgba(255,255,255,0.05)';
+      if(on&&cfg.glow){ctx.shadowColor=cfg.barColor;ctx.shadowBlur=10;}else ctx.shadowBlur=0;
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+    }
+  }
+  ctx.shadowBlur=0;
+}
+// Onda rellena
+function drawAreaWave(){
+  const W=canvas.width,H=canvas.height;analyser.getByteTimeDomainData(timeData);
+  const g=ctx.createLinearGradient(0,H*0.2,0,H);
+  g.addColorStop(0,cfg.barColor);g.addColorStop(1,cfg.useGradient?cfg.barColor2:cfg.barColor);
+  setGlow();ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(0,H);
+  const slice=W/timeData.length;
+  for(let i=0;i<timeData.length;i++){
+    const v=(timeData[i]-128)/128*cfg.sensitivity,y=H/2+v*(H*0.35);
+    ctx.lineTo(i*slice,y);
+  }
+  ctx.lineTo(W,H);ctx.closePath();ctx.globalAlpha=0.85;ctx.fill();ctx.globalAlpha=1;clearGlow();
+}
+// Onda doble espejada (osciloscopio)
+function drawDualWave(){
+  const W=canvas.width,H=canvas.height;analyser.getByteTimeDomainData(timeData);
+  setGlow();ctx.lineWidth=Math.max(2,W/420);ctx.strokeStyle=makeBarGradient(0,0,W,0);
+  const slice=W/timeData.length;
+  for(const sign of [1,-1]){
+    ctx.beginPath();
+    for(let i=0;i<timeData.length;i++){
+      const v=(timeData[i]-128)/128*cfg.sensitivity,y=H/2+sign*Math.abs(v)*(H*0.4),x=i*slice;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  clearGlow();
+}
+// Cinta / curva suave de frecuencias
+function drawRibbon(bars){
+  const W=canvas.width,H=canvas.height,baseY=H*0.9,maxH=H*0.7,step=W/(bars.length-1);
+  const g=ctx.createLinearGradient(0,baseY-maxH,0,baseY);
+  g.addColorStop(0,cfg.barColor);g.addColorStop(1,cfg.useGradient?cfg.barColor2:cfg.barColor);
+  setGlow();ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(0,baseY);
+  for(let i=0;i<bars.length;i++){
+    const x=i*step,y=baseY-bars[i]*maxH;
+    if(i===0)ctx.lineTo(x,y);
+    else{const px=(i-1)*step,py=baseY-bars[i-1]*maxH;ctx.quadraticCurveTo(px,py,(px+x)/2,(py+y)/2);}
+  }
+  ctx.lineTo(W,baseY);ctx.closePath();ctx.globalAlpha=0.9;ctx.fill();ctx.globalAlpha=1;clearGlow();
+}
+// Radial doble (barras hacia dentro y hacia fuera)
+function drawRadialMirror(bars){
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
+  const radius=Math.min(W,H)*0.22,maxLen=Math.min(W,H)*0.2,n=bars.length;
+  setGlow();
+  for(let i=0;i<n;i++){
+    const ang=i/n*Math.PI*2-Math.PI/2,len=bars[i]*maxLen;
+    ctx.strokeStyle=cfg.useGradient?lerpColor(cfg.barColor,cfg.barColor2,i/n):cfg.barColor;
+    ctx.lineWidth=Math.max(2,W/n*0.5);ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(ang)*(radius-len),cy+Math.sin(ang)*(radius-len));
+    ctx.lineTo(cx+Math.cos(ang)*(radius+len),cy+Math.sin(ang)*(radius+len));
+    ctx.stroke();
+  }
+  clearGlow();drawCenterCover(cx,cy,radius*0.7);
+}
+// Onda envuelta en un círculo
+function drawRingWave(){
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;analyser.getByteTimeDomainData(timeData);
+  const base=Math.min(W,H)*0.26,amp=Math.min(W,H)*0.16,n=timeData.length;
+  setGlow();ctx.lineWidth=Math.max(2,W/420);ctx.strokeStyle=makeBarGradient(0,cy-base,0,cy+base);
+  ctx.beginPath();
+  for(let i=0;i<=n;i++){
+    const idx=i%n,v=(timeData[idx]-128)/128*cfg.sensitivity;
+    const ang=i/n*Math.PI*2,r=base+v*amp;
+    const x=cx+Math.cos(ang)*r,y=cy+Math.sin(ang)*r;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.closePath();ctx.stroke();clearGlow();drawCenterCover(cx,cy,base*0.8);
+}
+// Sol / rayos rellenos
+function drawSunburst(bars){
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
+  const radius=Math.min(W,H)*0.12,maxLen=Math.min(W,H)*0.36,n=bars.length;
+  setGlow();
+  for(let i=0;i<n;i++){
+    const a0=i/n*Math.PI*2-Math.PI/2,a1=(i+0.8)/n*Math.PI*2-Math.PI/2,len=radius+bars[i]*maxLen;
+    ctx.fillStyle=cfg.useGradient?lerpColor(cfg.barColor,cfg.barColor2,i/n):cfg.barColor;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(a0)*radius,cy+Math.sin(a0)*radius);
+    ctx.lineTo(cx+Math.cos(a0)*len,cy+Math.sin(a0)*len);
+    ctx.lineTo(cx+Math.cos(a1)*len,cy+Math.sin(a1)*len);
+    ctx.lineTo(cx+Math.cos(a1)*radius,cy+Math.sin(a1)*radius);
+    ctx.closePath();ctx.fill();
+  }
+  clearGlow();drawCenterCover(cx,cy,radius*0.9);
+}
+// Blob orgánico
+function drawBlob(bars){
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
+  const base=Math.min(W,H)*0.2,amp=Math.min(W,H)*0.18,n=Math.min(bars.length,64);
+  const g=ctx.createRadialGradient(cx,cy,base*0.3,cx,cy,base+amp);
+  g.addColorStop(0,cfg.barColor);g.addColorStop(1,cfg.useGradient?cfg.barColor2:cfg.barColor);
+  setGlow();ctx.fillStyle=g;ctx.beginPath();
+  const pts=[];
+  for(let i=0;i<n;i++){const r=base+bars[i%bars.length]*amp;const a=i/n*Math.PI*2;pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+  ctx.moveTo((pts[0][0]+pts[n-1][0])/2,(pts[0][1]+pts[n-1][1])/2);
+  for(let i=0;i<n;i++){const c=pts[i],nx=pts[(i+1)%n];ctx.quadraticCurveTo(c[0],c[1],(c[0]+nx[0])/2,(c[1]+nx[1])/2);}
+  ctx.closePath();ctx.globalAlpha=0.9;ctx.fill();ctx.globalAlpha=1;clearGlow();drawCenterCover(cx,cy,base*0.7);
+}
+// Anillos concéntricos reactivos
+function drawRings(bars){
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
+  const ringsN=14,maxR=Math.min(W,H)*0.46;
+  setGlow();ctx.lineCap='round';
+  for(let i=0;i<ringsN;i++){
+    const bi=Math.floor(i/ringsN*bars.length),amp=bars[bi];
+    ctx.strokeStyle=cfg.useGradient?lerpColor(cfg.barColor,cfg.barColor2,i/ringsN):cfg.barColor;
+    ctx.globalAlpha=0.3+amp*0.7;ctx.lineWidth=2+amp*10;
+    ctx.beginPath();ctx.arc(cx,cy,(i+1)/ringsN*maxR,0,Math.PI*2);ctx.stroke();
+  }
+  ctx.globalAlpha=1;clearGlow();
+}
+// Espiral de puntos
+function drawSpiral(bars){
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
+  const turns=4,n=bars.length,maxR=Math.min(W,H)*0.45;
+  setGlow();
+  for(let i=0;i<n;i++){
+    const t=i/n,ang=t*Math.PI*2*turns+coverAngle,r=t*maxR;
+    const x=cx+Math.cos(ang)*r,y=cy+Math.sin(ang)*r;
+    ctx.fillStyle=cfg.useGradient?lerpColor(cfg.barColor,cfg.barColor2,t):cfg.barColor;
+    ctx.beginPath();ctx.arc(x,y,2+bars[i]*14,0,Math.PI*2);ctx.fill();
+  }
+  clearGlow();
+}
+// Espectrograma desplazante (waterfall)
+let wfCanvas=null,wfCtx=null;
+function drawWaterfall(){
+  const W=canvas.width,H=canvas.height;
+  if(!wfCanvas||wfCanvas.width!==W||wfCanvas.height!==H){
+    wfCanvas=document.createElement('canvas');wfCanvas.width=W;wfCanvas.height=H;wfCtx=wfCanvas.getContext('2d');
+  }
+  // desplazar hacia la izquierda
+  wfCtx.globalCompositeOperation='copy';wfCtx.drawImage(wfCanvas,-2,0);wfCtx.globalCompositeOperation='source-over';
+  const cols=2,bins=analyser.frequencyBinCount;
+  for(let y=0;y<H;y++){
+    const bi=Math.floor(Math.pow(1-y/H,1.6)*bins*0.72);
+    const v=Math.min(1,(freqData[bi]/255)*cfg.sensitivity);
+    wfCtx.fillStyle=v<0.02?'rgba(0,0,0,0)':lerpColor(cfg.barColor,cfg.barColor2,v);
+    wfCtx.globalAlpha=v<0.02?0:0.3+v*0.7;
+    wfCtx.fillRect(W-cols,y,cols,1);
+  }
+  wfCtx.globalAlpha=1;
+  ctx.drawImage(wfCanvas,0,0);
+}
+// Fuegos artificiales en los picos
+let fw=[];
+function drawFireworks(bars,level){
+  const W=canvas.width,H=canvas.height;
+  // disparar partículas en picos fuertes
+  if(level>0.45&&Math.random()<level){
+    const x=Math.random()*W,y=H*(0.2+Math.random()*0.4),hue=Math.random();
+    const col=lerpColor(cfg.barColor,cfg.barColor2,hue);
+    for(let k=0;k<28;k++){
+      const a=Math.random()*Math.PI*2,sp=2+Math.random()*6*(1+level);
+      fw.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,col});
+    }
+  }
+  // espectro tenue de base
+  const slot=W/bars.length;
+  for(let i=0;i<bars.length;i++){const h=bars[i]*H*0.25;ctx.fillStyle=cfg.barColor;ctx.globalAlpha=0.3;ctx.fillRect(i*slot,H-h,slot*0.7,h);}
+  ctx.globalAlpha=1;
+  for(let i=fw.length-1;i>=0;i--){
+    const p=fw[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.life-=0.018;
+    if(p.life<=0){fw.splice(i,1);continue;}
+    ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.col;
+    if(cfg.glow){ctx.shadowColor=p.col;ctx.shadowBlur=12;}
+    ctx.beginPath();ctx.arc(p.x,p.y,2.5,0,Math.PI*2);ctx.fill();
+  }
+  ctx.globalAlpha=1;ctx.shadowBlur=0;
+}
+
 function setGlow(){if(cfg.glow){ctx.shadowColor=cfg.barColor;ctx.shadowBlur=18;}}
 function clearGlow(){ctx.shadowBlur=0;}
 function roundRect(x,y,w,h,r){
@@ -451,10 +703,25 @@ function render(){
   if(isAudioReady&&analyser){
     switch(cfg.vizType){
       case 'mirror':drawBars(bars,true);break;
-      case 'radial':drawRadial(bars);break;
-      case 'wave':drawWave();break;
-      case 'dots':drawDots(bars);break;
+      case 'centerBars':drawCenterBars(bars);break;
+      case 'pyramid':drawPyramid(bars);break;
+      case 'caps':drawCaps(bars);break;
       case 'blocks':drawBlocks(bars);break;
+      case 'ledMatrix':drawLedMatrix(bars);break;
+      case 'wave':drawWave();break;
+      case 'areaWave':drawAreaWave();break;
+      case 'dualWave':drawDualWave();break;
+      case 'ribbon':drawRibbon(bars);break;
+      case 'radial':drawRadial(bars);break;
+      case 'radialMirror':drawRadialMirror(bars);break;
+      case 'ringWave':drawRingWave();break;
+      case 'sunburst':drawSunburst(bars);break;
+      case 'blob':drawBlob(bars);break;
+      case 'rings':drawRings(bars);break;
+      case 'spiral':drawSpiral(bars);break;
+      case 'dots':drawDots(bars);break;
+      case 'waterfall':drawWaterfall();break;
+      case 'fireworks':drawFireworks(bars,level);break;
       default:drawBars(bars,false);
     }
     drawCornerCover();
