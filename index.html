@@ -263,10 +263,27 @@ input[type="range"]::-moz-range-thumb{width:15px;height:15px;border:none;border-
         </select>
       </div>
 
+      <p class="mini" style="margin:6px 0 6px;font-weight:700;color:var(--accent-2)">🎛️ Modificar canción (pitch / tempo)</p>
       <div class="row"><label class="mini">Tempo / velocidad <b id="rateVal">1.00x</b></label><input type="range" id="rate" min="0.5" max="1.75" step="0.01" value="1" /></div>
+      <div class="transport" style="flex-wrap:wrap;gap:6px">
+        <button class="btn btn-ghost rateq" data-rate="0.85">0.85x</button>
+        <button class="btn btn-ghost rateq" data-rate="0.92">0.92x</button>
+        <button class="btn btn-ghost rateq" data-rate="1">1x</button>
+        <button class="btn btn-ghost rateq" data-rate="1.08">1.08x</button>
+        <button class="btn btn-ghost rateq" data-rate="1.25">1.25x</button>
+      </div>
       <label class="check"><input type="checkbox" id="preservePitch" checked /> Mantener tono al cambiar tempo</label>
       <div class="row"><label class="mini">Tono / pitch <b id="pitchVal">0 st</b></label><input type="range" id="pitch" min="-12" max="12" step="1" value="0" /></div>
-      <p class="mini" style="margin:-2px 0 8px;opacity:.7">El tono cambia sin alterar la velocidad (efecto en tiempo real).</p>
+      <div class="transport" style="flex-wrap:wrap;gap:6px">
+        <button class="btn btn-ghost pitchq" data-p="-3">-3</button>
+        <button class="btn btn-ghost pitchq" data-p="-2">-2</button>
+        <button class="btn btn-ghost pitchq" data-p="-1">-1</button>
+        <button class="btn btn-ghost pitchq" data-p="0">0</button>
+        <button class="btn btn-ghost pitchq" data-p="1">+1</button>
+        <button class="btn btn-ghost pitchq" data-p="2">+2</button>
+        <button class="btn btn-ghost pitchq" data-p="3">+3</button>
+      </div>
+      <p class="mini" style="margin:-2px 0 8px;opacity:.7">El tono cambia sin alterar la velocidad. Ideal para subir solo la instrumental y cambiar la tonalidad ±2-3 semitonos.</p>
 
       <div class="row"><label class="mini">Filtro DJ (graves ← → agudos)</label><input type="range" id="djFilter" min="-100" max="100" step="1" value="0" /></div>
 
@@ -1437,6 +1454,9 @@ $('preservePitch').addEventListener('change',e=>{
   audioEl.preservesPitch=e.target.checked;
   audioEl.mozPreservesPitch=e.target.checked;audioEl.webkitPreservesPitch=e.target.checked;
 });
+// Botones rápidos de tempo y pitch
+document.querySelectorAll('.rateq').forEach(b=>b.addEventListener('click',()=>setVal('rate',parseFloat(b.dataset.rate))));
+document.querySelectorAll('.pitchq').forEach(b=>b.addEventListener('click',()=>setVal('pitch',parseInt(b.dataset.p))));
 
 // Filtro DJ: un solo control. <0 baja el lowpass (apaga agudos), >0 sube el highpass (quita graves)
 $('djFilter').addEventListener('input',e=>{
