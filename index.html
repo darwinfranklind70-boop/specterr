@@ -156,6 +156,7 @@ input[type="range"]::-moz-range-thumb{width:15px;height:15px;border:none;border-
           <optgroup label="Circular / Radial">
             <option value="radial">Radial / Circular</option>
             <option value="radialMirror">Radial doble</option>
+            <option value="neonStar">Estrella neón ⭐</option>
             <option value="ringWave">Anillo de onda</option>
             <option value="sunburst">Sol / rayos</option>
             <option value="blob">Blob orgánico</option>
@@ -194,6 +195,7 @@ input[type="range"]::-moz-range-thumb{width:15px;height:15px;border:none;border-
         <select id="bgType">
           <option value="solid">Color sólido</option>
           <option value="gradient" selected>Degradado</option>
+          <option value="synthwave">Escena 3D (synthwave) 🌄</option>
           <option value="image">Imagen</option>
           <option value="video">Video</option>
         </select>
@@ -631,6 +633,7 @@ function drawBackground(level){
     ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
   } else if(cfg.bgType==='image'&&bgImg){drawCover(bgImg,level);}
   else if(cfg.bgType==='video'&&bgVideoEl.readyState>=2){drawCover(bgVideoEl,level);}
+  else if(cfg.bgType==='synthwave'){drawScene3D(level);}
   else {ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);}
   if(cfg.bgDim>0){ctx.fillStyle='rgba(0,0,0,'+cfg.bgDim+')';ctx.fillRect(0,0,W,H);}
   if(cfg.particles)drawParticles(level);
@@ -1033,6 +1036,102 @@ function hslToHex(h,s,l){
   const to=x=>Math.round(255*x).toString(16).padStart(2,'0');
   return '#'+to(f(0))+to(f(8))+to(f(4));
 }
+
+/* ===== Escena 3D synthwave (fondo animado al ritmo) ===== */
+function bassLevel(){let e=0,nb=Math.floor(freqData.length*0.08);for(let i=0;i<nb;i++)e+=freqData[i];return Math.min(1,(e/(nb*255))*1.4);}
+function shade(hex,amt){const c=hexToRgb(hex);const f=v=>Math.max(0,Math.min(255,v+amt));return 'rgb('+f(c.r)+','+f(c.g)+','+f(c.b)+')';}
+let sceneMtn=null,floorOff=0;
+function initScene3D(){
+  function range(seed,n){let s=seed;const rnd=()=>{s=(s*9301+49297)%233280;return s/233280;};const a=[];for(let i=0;i<=n;i++)a.push(0.35+rnd()*0.65);return a;}
+  sceneMtn={left:range(12345,9),right:range(67890,9)};
+}
+function drawScene3D(level){
+  if(!sceneMtn)initScene3D();
+  const W=canvas.width,H=canvas.height,hor=Math.round(H*0.52);
+  const bass=(isAudioReady&&analyser)?bassLevel():0;
+  // Cielo
+  let g=ctx.createLinearGradient(0,0,0,hor);
+  g.addColorStop(0,cfg.bgColor1);g.addColorStop(1,cfg.bgColor2);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,hor);
+  // Suelo
+  let g2=ctx.createLinearGradient(0,hor,0,H);
+  g2.addColorStop(0,shade(cfg.bgColor2,-30));g2.addColorStop(1,'#05010f');
+  ctx.fillStyle=g2;ctx.fillRect(0,hor,W,H-hor);
+  // Sol retro
+  const sunR=Math.min(W,H)*(0.13+level*0.03),sx=W/2,sy=hor-Math.min(W,H)*0.015;
+  const sg=ctx.createRadialGradient(sx,sy,sunR*0.1,sx,sy,sunR);
+  sg.addColorStop(0,'#fff6cf');sg.addColorStop(0.55,'#ffce6b');sg.addColorStop(1,'rgba(255,110,90,0)');
+  ctx.save();ctx.beginPath();ctx.arc(sx,sy,sunR,0,Math.PI*2);ctx.clip();
+  ctx.fillStyle=sg;ctx.fillRect(sx-sunR,sy-sunR,sunR*2,sunR*2);
+  // rayas del sol
+  ctx.fillStyle=cfg.bgColor2;
+  for(let i=1;i<=6;i++){const yy=sy+(i*i)*sunR*0.025;ctx.fillRect(sx-sunR,yy,sunR*2,Math.max(2,sunR*0.06));}
+  ctx.restore();
+  // Montañas neón
+  drawMountains(sceneMtn.left,0,W*0.42,hor,H,bass,true);
+  drawMountains(sceneMtn.right,W*0.58,W,hor,H,bass,false);
+  // Rejilla del suelo en perspectiva
+  drawFloorGrid(hor,W,H,level,bass);
+}
+function drawMountains(heights,x0,x1,hor,H,bass,isLeft){
+  const W=canvas.width,width=x1-x0,n=heights.length-1,step=width/n;
+  const maxH=H*0.30*(1+bass*0.6);
+  const neon=cfg.useGradient?cfg.barColor2:cfg.barColor;
+  // relleno oscuro
+  ctx.beginPath();ctx.moveTo(x0,hor);
+  for(let i=0;i<=n;i++){
+    const edge=isLeft?(1-i/n*0.5):(0.5+i/n*0.5);
+    const x=x0+i*step,y=hor-heights[i]*maxH*edge;
+    ctx.lineTo(x,y);
+  }
+  ctx.lineTo(x1,hor);ctx.closePath();
+  const mg=ctx.createLinearGradient(0,hor-maxH,0,hor);
+  mg.addColorStop(0,shade(cfg.bgColor1,-40));mg.addColorStop(1,'#0a0420');
+  ctx.fillStyle=mg;ctx.fill();
+  // contorno + cuadrícula neón
+  ctx.save();ctx.shadowColor=neon;ctx.shadowBlur=12;ctx.strokeStyle=neon;ctx.lineWidth=Math.max(1.5,W/700);
+  ctx.beginPath();
+  for(let i=0;i<=n;i++){const edge=isLeft?(1-i/n*0.5):(0.5+i/n*0.5);const x=x0+i*step,y=hor-heights[i]*maxH*edge;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+  ctx.stroke();
+  // líneas verticales de cada pico
+  for(let i=0;i<=n;i++){const edge=isLeft?(1-i/n*0.5):(0.5+i/n*0.5);const x=x0+i*step,y=hor-heights[i]*maxH*edge;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,hor);ctx.globalAlpha=0.5;ctx.stroke();ctx.globalAlpha=1;}
+  ctx.restore();
+}
+function drawFloorGrid(hor,W,H,level,bass){
+  const neon=cfg.useGradient?cfg.barColor2:cfg.barColor;
+  floorOff=(floorOff+1.5+level*8)%40;
+  ctx.save();ctx.shadowColor=neon;ctx.shadowBlur=10;ctx.strokeStyle=neon;ctx.lineWidth=Math.max(1.5,W/800);
+  // horizontales (acercándose)
+  for(let i=0;i<24;i++){
+    const p=(i*40+floorOff)/(24*40),y=hor+Math.pow(p,2.2)*(H-hor);
+    ctx.globalAlpha=0.15+p*0.85;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+  }
+  // verticales (convergen al punto de fuga)
+  const vx=20;ctx.globalAlpha=0.55;
+  for(let i=-vx;i<=vx;i++){ctx.beginPath();ctx.moveTo(W/2+i*16,hor);ctx.lineTo(W/2+i*(W/vx),H);ctx.stroke();}
+  ctx.restore();
+}
+/* ===== Estrella neón (aro picudo reactivo, como la imagen) ===== */
+function drawNeonStar(bars){
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
+  const baseR=Math.min(W,H)*0.12,maxLen=Math.min(W,H)*0.2,n=Math.min(bars.length,72),step=bars.length/n;
+  ctx.save();ctx.lineJoin='round';
+  if(cfg.glow){ctx.shadowColor=cfg.barColor;ctx.shadowBlur=26;}
+  ctx.beginPath();
+  for(let i=0;i<n;i++){
+    const a0=(i/n)*Math.PI*2-Math.PI/2,aMid=((i+0.5)/n)*Math.PI*2-Math.PI/2;
+    const r1=baseR+(bars[Math.floor(i*step)]||0)*maxLen+baseR*0.15;
+    const vx=cx+Math.cos(a0)*baseR,vy=cy+Math.sin(a0)*baseR;
+    const px=cx+Math.cos(aMid)*r1,py=cy+Math.sin(aMid)*r1;
+    i===0?ctx.moveTo(vx,vy):ctx.lineTo(vx,vy);
+    ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  ctx.fillStyle=cfg.barColor;ctx.globalAlpha=0.16;ctx.fill();ctx.globalAlpha=1;
+  ctx.strokeStyle=cfg.useGradient?cfg.barColor2:cfg.barColor;ctx.lineWidth=Math.max(2,W/280);ctx.stroke();
+  ctx.restore();
+  drawCenterCover(cx,cy,baseR*0.82);
+}
 // Túnel: polígonos concéntricos que giran y laten
 function drawTunnel(bars){
   const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
@@ -1177,6 +1276,7 @@ function render(){
       case 'ribbon':drawRibbon(bars);break;
       case 'radial':drawRadial(bars);break;
       case 'radialMirror':drawRadialMirror(bars);break;
+      case 'neonStar':drawNeonStar(bars);break;
       case 'ringWave':drawRingWave();break;
       case 'sunburst':drawSunburst(bars);break;
       case 'blob':drawBlob(bars);break;
@@ -1234,12 +1334,15 @@ function toggleRecording(){
   const dest=audioCtx.createMediaStreamDestination();
   gainNode.connect(dest);
   dest.stream.getAudioTracks().forEach(t=>canvasStream.addTrack(t));
+  // Bitrate alto automático según resolución/FPS (evita el pixeleado)
+  let bitrate=Math.round(view.width*view.height*fps*0.18);
+  bitrate=Math.max(12000000,Math.min(bitrate,80000000));
   const fmt=$('vidFormat').value;let mime,ext;
   if(fmt==='mp4'&&MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E,mp4a.40.2')){mime='video/mp4;codecs=avc1.42E01E,mp4a.40.2';ext='mp4';}
   else if(fmt==='mp4'&&MediaRecorder.isTypeSupported('video/mp4')){mime='video/mp4';ext='mp4';}
   else{mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':(MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')?'video/webm;codecs=vp8,opus':'video/webm');ext='webm';if(fmt==='mp4')setTimeout(()=>alert('Tu navegador no graba MP4 directamente; se usará WebM. Puedes convertirlo a MP4 con cualquier conversor.'),100);}
   recChunks=[];
-  mediaRecorder=new MediaRecorder(canvasStream,{mimeType:mime,videoBitsPerSecond:8000000});
+  mediaRecorder=new MediaRecorder(canvasStream,{mimeType:mime,videoBitsPerSecond:bitrate,audioBitsPerSecond:256000});
   mediaRecorder.ondataavailable=e=>{if(e.data.size)recChunks.push(e.data);};
   mediaRecorder.onstop=()=>{
     const blob=new Blob(recChunks,{type:mime});
